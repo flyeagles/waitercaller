@@ -13,11 +13,14 @@ from flask.ext.login import login_required
 #from flask.ext.login import login_user
 
 
+import config
+if config.test:
+	from mockdbhelper import MockDBHelper as DBHelper
+else:
+	from dbhelper import DBHelper
 
-from mockdbhelper import MockDBHelper as DBHelper
 from user import User
 from passwordhelper import PasswordHelper
-import config
 from bitlyhelper import BitlyHelper
 from forms import RegistrationForm
 from forms import LoginForm
@@ -54,7 +57,7 @@ def account_createtable():
 	form=CreateTableForm(request.form)
 	if form.validate():
 		tableid = DB.add_table(form.tablenumber.data, flask.ext.login.current_user.get_id())
-		new_url = BH.shorten_url( config.base_url+'newrequest/' + tableid )
+		new_url = BH.shorten_url( config.base_url+'newrequest/' + str(tableid) )
 		DB.update_table(tableid, new_url)
 		return redirect(url_for("account"))
 
@@ -71,9 +74,9 @@ def account_deletetable():
 
 @app.route('/newrequest/<tid>')
 def new_request(tid):
-	DB.add_request(tid, datetime.datetime.now())
-	return "Your request has been logged."
-
+	if DB.add_request(tid, datetime.datetime.now()):
+		return "Your request has been logged."
+	return "There is alreayd a pending request for this table."
 
 
 @app.route('/login', methods=["POST"])
